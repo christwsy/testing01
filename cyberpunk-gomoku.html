@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>赛博朋克五子棋 - Cyber Gomoku</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 50%, #000428 100%);
+            color: #00ffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* 霓虹灯效果 */
+        @keyframes neonGlow {
+            0%, 100% { text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff; }
+            50% { text-shadow: 0 0 20px #ff00ff, 0 0 30px #ff00ff, 0 0 40px #ff00ff; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes scanLine {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        .title {
+            font-size: 3em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #00ff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: neonGlow 2s ease-in-out infinite;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            padding: 20px;
+            position: relative;
+        }
+
+        .board-section {
+            position: relative;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 40px);
+            grid-template-rows: repeat(15, 40px);
+            gap: 1px;
+            background: #001133;
+            border: 3px solid #00ffff;
+            box-shadow: 0 0 30px #00ffff, inset 0 0 20px rgba(0, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .board::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        .cell {
+            background: rgba(0, 20, 40, 0.8);
+            border: 1px solid #003366;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cell:hover {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+            box-shadow: 0 0 10px #00ffff;
+            transform: scale(1.05);
+        }
+
+        .piece {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.3s ease;
+            animation: piecePlace 0.5s ease;
+        }
+
+        @keyframes piecePlace {
+            0% { transform: scale(0) rotate(180deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(90deg); opacity: 0.8; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .piece.black {
+            background: radial-gradient(circle at 30% 30%, #444, #000);
+            box-shadow: 0 0 15px #ff00ff, inset 0 0 10px rgba(255, 0, 255, 0.3);
+        }
+
+        .piece.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+            box-shadow: 0 0 15px #00ffff, inset 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        .control-panel {
+            background: rgba(0, 0, 50, 0.8);
+            border: 2px solid #ff00ff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px #ff00ff, inset 0 0 15px rgba(255, 0, 255, 0.1);
+            min-width: 300px;
+        }
+
+        .player-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 50, 100, 0.3);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+        }
+
+        .current-player {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            margin-bottom: 10px;
+        }
+
+        .skills-section {
+            margin-top: 20px;
+        }
+
+        .skills-title {
+            font-size: 1.3em;
+            color: #ff00ff;
+            margin-bottom: 15px;
+            text-align: center;
+            text-shadow: 0 0 10px #ff00ff;
+        }
+
+        .skill-button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: linear-gradient(45deg, #1a0033, #330066);
+            border: 2px solid #ff00ff;
+            color: #00ffff;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 5px #00ffff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skill-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 0, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .skill-button:hover::before {
+            left: 100%;
+        }
+
+        .skill-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px #ff00ff, 0 0 30px #ff00ff;
+            background: linear-gradient(45deg, #330066, #4d0099);
+        }
+
+        .skill-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #333;
+            border-color: #666;
+        }
+
+        .skill-cooldown {
+            font-size: 0.9em;
+            color: #ff6666;
+            margin-top: 5px;
+        }
+
+        .game-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 100, 200, 0.2);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+        }
+
+        .restart-button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: linear-gradient(45deg, #003366, #0066cc);
+            border: 2px solid #00ffff;
+            color: #ffffff;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .restart-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #00ffff;
+            background: linear-gradient(45deg, #0066cc, #0099ff);
+        }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid #00ffff;
+            border-radius: 10px;
+            padding: 30px;
+            font-size: 2em;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 0 0 20px #00ff00;
+            box-shadow: 0 0 50px #00ffff;
+            z-index: 1000;
+            animation: neonGlow 1s ease-in-out infinite;
+            display: none;
+        }
+
+        .matrix-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes matrixGlitch {
+            0%, 100% { opacity: 0; }
+            10%, 90% { opacity: 1; }
+            20%, 80% { transform: translateX(-2px); }
+            30%, 70% { transform: translateX(2px); }
+            40%, 60% { transform: translateX(-1px); }
+            50% { transform: translateX(1px); }
+        }
+
+        .glitching {
+            animation: matrixGlitch 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">赛博朋克五子棋</h1>
+        <p class="subtitle">CYBER PUNK GOMOKU 2077</p>
+    </div>
+
+    <div class="game-container">
+        <div class="board-section">
+            <div class="board" id="board"></div>
+            <div class="matrix-effect" id="matrixEffect"></div>
+        </div>
+
+        <div class="control-panel">
+            <div class="player-info">
+                <div class="current-player" id="currentPlayer">当前玩家: 黑棋</div>
+                <div id="gameStatus">游戏进行中...</div>
+            </div>
+
+            <div class="skills-section">
+                <h3 class="skills-title">⚡ 技能系统 ⚡</h3>
+                
+                <button class="skill-button" id="skillRewind" onclick="useSkillRewind()">
+                    🕐 时间回溯
+                    <div class="skill-cooldown" id="rewindCooldown">冷却: 0/3 回合</div>
+                </button>
+                
+                <button class="skill-button" id="skillShuffle" onclick="useSkillShuffle()">
+                    🎲 矩阵打乱
+                    <div class="skill-cooldown" id="shuffleCooldown">冷却: 0/2 回合</div>
+                </button>
+            </div>
+
+            <div class="game-info">
+                <div>回合数: <span id="turnCount">0</span></div>
+                <div>黑棋胜利: <span id="blackWins">0</span></div>
+                <div>白棋胜利: <span id="whiteWins">0</span></div>
+            </div>
+
+            <button class="restart-button" onclick="restartGame()">🔄 重新开始</button>
+        </div>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <script>
+        // 游戏状态
+        let board = [];
+        let currentPlayer = 'black';
+        let gameActive = true;
+        let turnCount = 0;
+        let moveHistory = [];
+        let blackWins = 0;
+        let whiteWins = 0;
+
+        // 技能冷却系统
+        let skillCooldowns = {
+            rewind: { current: 0, max: 3 },
+            shuffle: { current: 0, max: 2 }
+        };
+
+        // 初始化游戏
+        function initGame() {
+            board = Array(15).fill(null).map(() => Array(15).fill(null));
+            currentPlayer = 'black';
+            gameActive = true;
+            turnCount = 0;
+            moveHistory = [];
+            
+            // 重置技能冷却
+            skillCooldowns.rewind.current = 0;
+            skillCooldowns.shuffle.current = 0;
+            
+            createBoard();
+            updateDisplay();
+            updateSkillButtons();
+        }
+
+        // 创建棋盘
+        function createBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+            
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.onclick = () => makeMove(row, col);
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        // 下棋
+        function makeMove(row, col) {
+            if (!gameActive || board[row][col] !== null) {
+                return;
+            }
+
+            // 记录移动历史
+            moveHistory.push({
+                row: row,
+                col: col,
+                player: currentPlayer,
+                turnCount: turnCount
+            });
+
+            // 放置棋子
+            board[row][col] = currentPlayer;
+            updateCell(row, col);
+            
+            // 检查获胜
+            if (checkWin(row, col)) {
+                endGame(currentPlayer);
+                return;
+            }
+
+            // 检查平局
+            if (turnCount >= 224) { // 15*15 - 1
+                endGame('draw');
+                return;
+            }
+
+            // 切换玩家
+            currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+            turnCount++;
+            
+            // 更新技能冷却
+            updateSkillCooldowns();
+            
+            updateDisplay();
+            updateSkillButtons();
+        }
+
+        // 更新单元格显示
+        function updateCell(row, col) {
+            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            if (board[row][col]) {
+                const piece = document.createElement('div');
+                piece.className = `piece ${board[row][col]}`;
+                cell.appendChild(piece);
+            }
+        }
+
+        // 检查获胜
+        function checkWin(row, col) {
+            const player = board[row][col];
+            const directions = [
+                [[0, 1], [0, -1]],  // 水平
+                [[1, 0], [-1, 0]],  // 垂直
+                [[1, 1], [-1, -1]], // 对角线
+                [[1, -1], [-1, 1]]  // 反对角线
+            ];
+
+            for (let direction of directions) {
+                let count = 1;
+                
+                for (let [dr, dc] of direction) {
+                    let r = row + dr;
+                    let c = col + dc;
+                    
+                    while (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === player) {
+                        count++;
+                        r += dr;
+                        c += dc;
+                    }
+                }
+                
+                if (count >= 5) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        // 技能1: 时间回溯
+        function useSkillRewind() {
+            if (!gameActive || skillCooldowns.rewind.current > 0) {
+                return;
+            }
+
+            if (moveHistory.length < 2) {
+                showMessage('没有足够的历史记录可以回溯！');
+                return;
+            }
+
+            // 撤销最近两步
+            const lastMove = moveHistory.pop();
+            const secondLastMove = moveHistory.pop();
+            
+            board[lastMove.row][lastMove.col] = null;
+            board[secondLastMove.row][secondLastMove.col] = null;
+            
+            // 恢复棋盘显示
+            createBoard();
+            for (let r = 0; r < 15; r++) {
+                for (let c = 0; c < 15; c++) {
+                    if (board[r][c]) {
+                        updateCell(r, c);
+                    }
+                }
+            }
+            
+            // 设置冷却
+            skillCooldowns.rewind.current = skillCooldowns.rewind.max;
+            
+            // 恢复到两步前的状态
+            currentPlayer = secondLastMove.player;
+            turnCount = secondLastMove.turnCount;
+            
+            // 特效
+            addGlitchEffect();
+            showMessage('时间回溯成功！');
+            
+            updateDisplay();
+            updateSkillButtons();
+        }
+
+        // 技能2: 矩阵打乱
+        function useSkillShuffle() {
+            if (!gameActive || skillCooldowns.shuffle.current > 0) {
+                return;
+            }
+
+            // 收集所有已放置的棋子
+            const pieces = [];
+            for (let r = 0; r < 15; r++) {
+                for (let c = 0; c < 15; c++) {
+                    if (board[r][c] !== null) {
+                        pieces.push({ player: board[r][c] });
+                    }
+                }
+            }
+
+            if (pieces.length < 4) {
+                showMessage('棋盘上棋子太少，无法打乱！');
+                return;
+            }
+
+            // 清空棋盘
+            board = Array(15).fill(null).map(() => Array(15).fill(null));
+            
+            // 随机重新放置棋子
+            const positions = [];
+            for (let r = 0; r < 15; r++) {
+                for (let c = 0; c < 15; c++) {
+                    positions.push([r, c]);
+                }
+            }
+            
+            // 随机打乱位置
+            for (let i = positions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [positions[i], positions[j]] = [positions[j], positions[i]];
+            }
+            
+            // 重新放置棋子
+            pieces.forEach((piece, index) => {
+                if (index < positions.length) {
+                    const [r, c] = positions[index];
+                    board[r][c] = piece.player;
+                }
+            });
+            
+            // 重建移动历史
+            moveHistory = [];
+            for (let r = 0; r < 15; r++) {
+                for (let c = 0; c < 15; c++) {
+                    if (board[r][c] !== null) {
+                        moveHistory.push({
+                            row: r,
+                            col: c,
+                            player: board[r][c],
+                            turnCount: moveHistory.length
+                        });
+                    }
+                }
+            }
+            
+            // 设置冷却
+            skillCooldowns.shuffle.current = skillCooldowns.shuffle.max;
+            
+            // 特效
+            addMatrixEffect();
+            showMessage('矩阵已重新排列！');
+            
+            // 重新显示棋盘
+            createBoard();
+            for (let r = 0; r < 15; r++) {
+                for (let c = 0; c < 15; c++) {
+                    if (board[r][c]) {
+                        updateCell(r, c);
+                    }
+                }
+            }
+            
+            updateDisplay();
+            updateSkillButtons();
+        }
+
+        // 更新技能冷却
+        function updateSkillCooldowns() {
+            if (skillCooldowns.rewind.current > 0) {
+                skillCooldowns.rewind.current--;
+            }
+            if (skillCooldowns.shuffle.current > 0) {
+                skillCooldowns.shuffle.current--;
+            }
+        }
+
+        // 更新技能按钮状态
+        function updateSkillButtons() {
+            const rewindBtn = document.getElementById('skillRewind');
+            const shuffleBtn = document.getElementById('skillShuffle');
+            
+            rewindBtn.disabled = !gameActive || skillCooldowns.rewind.current > 0;
+            shuffleBtn.disabled = !gameActive || skillCooldowns.shuffle.current > 0;
+            
+            document.getElementById('rewindCooldown').textContent = 
+                `冷却: ${skillCooldowns.rewind.current}/${skillCooldowns.rewind.max} 回合`;
+            document.getElementById('shuffleCooldown').textContent = 
+                `冷却: ${skillCooldowns.shuffle.current}/${skillCooldowns.shuffle.max} 回合`;
+        }
+
+        // 添加故障特效
+        function addGlitchEffect() {
+            const board = document.getElementById('board');
+            board.classList.add('glitching');
+            setTimeout(() => {
+                board.classList.remove('glitching');
+            }, 500);
+        }
+
+        // 添加矩阵特效
+        function addMatrixEffect() {
+            const matrixEffect = document.getElementById('matrixEffect');
+            matrixEffect.style.background = 'linear-gradient(45deg, transparent, rgba(0, 255, 0, 0.3), transparent)';
+            matrixEffect.style.animation = 'pulse 0.5s ease-in-out 3';
+            
+            setTimeout(() => {
+                matrixEffect.style.background = 'transparent';
+                matrixEffect.style.animation = 'none';
+            }, 1500);
+        }
+
+        // 显示消息
+        function showMessage(text) {
+            const messageElement = document.getElementById('message');
+            messageElement.textContent = text;
+            messageElement.style.display = 'block';
+            
+            setTimeout(() => {
+                messageElement.style.display = 'none';
+            }, 2000);
+        }
+
+        // 更新显示
+        function updateDisplay() {
+            document.getElementById('currentPlayer').textContent = 
+                `当前玩家: ${currentPlayer === 'black' ? '黑棋' : '白棋'}`;
+            document.getElementById('turnCount').textContent = turnCount;
+            document.getElementById('blackWins').textContent = blackWins;
+            document.getElementById('whiteWins').textContent = whiteWins;
+        }
+
+        // 游戏结束
+        function endGame(winner) {
+            gameActive = false;
+            
+            if (winner === 'draw') {
+                showMessage('平局！');
+                document.getElementById('gameStatus').textContent = '游戏结束 - 平局！';
+            } else {
+                const winnerName = winner === 'black' ? '黑棋' : '白棋';
+                showMessage(`${winnerName} 获胜！`);
+                document.getElementById('gameStatus').textContent = `游戏结束 - ${winnerName} 获胜！`;
+                
+                if (winner === 'black') {
+                    blackWins++;
+                } else {
+                    whiteWins++;
+                }
+            }
+            
+            updateDisplay();
+            updateSkillButtons();
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            initGame();
+            document.getElementById('gameStatus').textContent = '游戏进行中...';
+        }
+
+        // 初始化
+        initGame();
+    </script>
+</body>
+</html>
